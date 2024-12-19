@@ -1,0 +1,82 @@
+---
+title: "BMI microbiome"
+author: "Li-Fang Yeo"
+date: "18-12-2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+```{r}
+library(magrittr)
+```
+```{r}
+devtools::load_all()
+```
+Command line arguments
+```{r}
+args <- list(
+  optparse::make_option("--east", action="store_true", default=FALSE, help="Exclude Eastern Finland subpopulation [default \"%default\"]"),
+  optparse::make_option("--west", action="store_true", default=FALSE, help="Exclude Eastern Finland subpopulation [default \"%default\"]"),
+  optparse::make_option("--low", action="store_true", default=FALSE, help="Exclude low GFR [default \"%default\"]"),
+  optparse::make_option("--high", action="store_true", default=FALSE, help="Exclude high GFR [default \"%default\"]"),
+  optparse::make_option("--detection", type = "numeric", default = 0.1/100, help = "Detection limit [default %default]"),
+optparse::make_option("--prevalence", type = "numeric", default = 5/100, help = "Prevalence limit [default %default]")) %>% 
+  optparse::OptionParser(option_list = .) %>%
+  optparse::parse_args()
+```
+```{r}
+args %>% tibble::enframe(name = "Option", value = "Argument") %>% DT::datatable()
+```
+Data definition
+```{r}
+vars <- list(BL_AGE = "Age",
+             MEN = "Men",
+             BMI = "BMI",
+             VYOTARO = "Waist circ",
+             WHR = "waist-hip ratio",
+             PREVAL_DIAB = "Diabetes",
+             SYSTM = "Systolic blood pressure",
+             PREVAL_HFAIL_STRICT = "Heart failure",
+             PREVAL_CR_ANYCANC ="Cancer",
+             CURR_SMOKE = "Smoking",
+             TULOT = "Income class",
+             KOULGR = "Education level",
+             LIPID_TREAT = "Lipid lowering medication",
+             BP_TREAT = "Antihypertensive medication",
+             ALKI2_FR02 = "Alcohol consumption per week (g)",
+             HFC = "Healthy food choices",
+             shannon = "Shannon diversity")
+```
+Read data in, calculate GFR, UAC and remove NAs
+```{r}
+tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
+  mia::transformAssay(assay.type = "counts", method = "relabundance") %>% 
+  mia::estimateDiversity(assay.type = "counts", index = "shannon", name = "shannon") %>%
+  tse_add_food_score(HFC) %>%
+  tse_mutate(dplyr::across(c(MEN,
+                             CURR_SMOKE,
+                             TULOT,
+                             KOULGR,
+                             LIPID_TREAT,
+                             BP_TREAT,
+                             dplyr::contains("INCIDENT"),
+                             dplyr::contains("PREVAL")), as.factor)) %>% 
+  #pregnant
+  tse_filter(GRAVID %in% c(1, NA)) %>%
+  #antibiotic use in the past 1 month
+  tse_filter(BL_USE_RX_J01_1mo %in% c(0, NA)) %>%
+  #missing covariate
+  tse_filter(dplyr::if_all(dplyr::one_of(names(vars)), not_na)) %>%
+  #low reads
+  tse_filter(total_reads > 35000) %>%
+  tse_select(names(vars))
+```
+
+# Characteristic
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>%
+  mytableone(vars)
+```
