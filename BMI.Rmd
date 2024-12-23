@@ -1,5 +1,5 @@
 ---
-title: "BMI microbiome"
+title: "Cross-sectional BMI, Waist and waist-hip ratio and gut microbiome"
 author: "Li-Fang Yeo"
 date: "18-12-2024"
 output: html_document
@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
 ```{r}
 library(magrittr)
+library(ANCOMBC)
+library(mia)
 ```
 ```{r}
 devtools::load_all()
@@ -37,30 +39,23 @@ vars <- list(BL_AGE = "Age",
              VYOTARO = "Waist circ",
              WHR = "waist-hip ratio",
              PREVAL_DIAB = "Diabetes",
-             SYSTM = "Systolic blood pressure",
              PREVAL_HFAIL_STRICT = "Heart failure",
-             PREVAL_CR_ANYCANC ="Cancer",
              CURR_SMOKE = "Smoking",
-             TULOT = "Income class",
-             KOULGR = "Education level",
-             LIPID_TREAT = "Lipid lowering medication",
-             BP_TREAT = "Antihypertensive medication",
              ALKI2_FR02 = "Alcohol consumption per week (g)",
              HFC = "Healthy food choices",
+             Q57 = "Exercise",
              shannon = "Shannon diversity")
 ```
-Read data in, calculate GFR, UAC and remove NAs
+Read data in and filter for covariates
 ```{r}
 tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
   mia::transformAssay(assay.type = "counts", method = "relabundance") %>% 
   mia::estimateDiversity(assay.type = "counts", index = "shannon", name = "shannon") %>%
   tse_add_food_score(HFC) %>%
+  tse_mutate(Q57 = dplyr::if_else(Q57 %in% c(3, 4), 3, Q57)) %>%
   tse_mutate(dplyr::across(c(MEN,
                              CURR_SMOKE,
-                             TULOT,
-                             KOULGR,
-                             LIPID_TREAT,
-                             BP_TREAT,
+                             Q57,
                              dplyr::contains("INCIDENT"),
                              dplyr::contains("PREVAL")), as.factor)) %>% 
   #pregnant
@@ -70,7 +65,7 @@ tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
   #missing covariate
   tse_filter(dplyr::if_all(dplyr::one_of(names(vars)), not_na)) %>%
   #low reads
-  tse_filter(total_reads > 35000) %>%
+  tse_filter(total_reads > 50000) %>%
   tse_select(names(vars))
 ```
 
@@ -79,4 +74,147 @@ tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
 tse %>%
   tse_meta(rownames = FALSE) %>%
   mytableone(vars)
+```
+```{r}
+
+```
+# Model function definitions
+BMI model + covariates
+```{r}
+lm_bmi_partial <-  purrr::partial(lm,
+                                  formula = BMI ~
+                                    term + BL_AGE + MEN +
+                                    PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                    ALKI2_FR02 + HFC + Q57)
+```
+```{r}
+lm_bmi_model_for_taxon <- function(df, term, rank = NULL) {
+  message(term)
+  { if (is.null(rank)) df else df[[rank]] } %>%
+    dplyr::rename(term := {{term}}) %>% 
+    lm_bmi_partial(data = .)
+}
+```
+# Alpha diversity using microbial counts on Shannon index
+## Univariable adjusted for age and sex
+BMI
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(BMI ~ shannon + BL_AGE + MEN, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to BMI")
+```
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(BMI ~ shannon + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                    ALKI2_FR02 + HFC + Q57, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to BMI")
+```
+Waist circumference
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(VYOTARO ~ shannon + BL_AGE + MEN, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to Vyot")
+```
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(VYOTARO ~ shannon + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                    ALKI2_FR02 + HFC + Q57, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to Vyot")
+```
+Hip to waist ratio
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(WHR ~ shannon + BL_AGE + MEN, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to WHR")
+```
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(WHR ~ shannon + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                    ALKI2_FR02 + HFC + Q57, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to WHR")
+```
+#Common taxa
+Agglomerate prevalent features
+```{r}
+#reads were filtered to detection threshold of 0.1% relative abundance, in 5% of samples
+#This is to filter out rare taxa, to ensure we are anlaysing microbes that are likely to be real and not sequencing artefacts
+subset_features_partial <-  purrr::partial(mia::subsetByPrevalentFeatures,
+                                           x = tse,
+                                           detection = args$detection,
+                                           prevalence = args$prevalence,
+                                           as_relative = TRUE) %>%
+  purrr::possibly()
+```
+Subset to only Species
+```{r}
+taxa_subsets <- c("Species") %>%
+  rlang::set_names() %>%
+  purrr::map(subset_features_partial)
+```
+Melt tse to data frame
+```{r}
+melt_tse <- function(x, method = "clr") {
+  mia::transformAssay(x, method = method, pseudocount = 1) %>% 
+    mia::meltAssay(add_row_data = TRUE, assay_name = method) %>%
+    dplyr::mutate(FeatureID = glue::glue("GUT_{FeatureID}")) %>%
+    dplyr::mutate(FeatureID = stringr::str_replace_all(FeatureID, c(" " = "_", "-" = "_"))) %>% 
+    dplyr::select(SampleID, FeatureID, clr) %>%
+    tidyr::spread(FeatureID, clr) %>% 
+    dplyr::full_join(tse_meta(x), by = dplyr::join_by(SampleID == rownames))
+}
+```
+```{r}
+dfs <- taxa_subsets %>%
+  purrr::map(melt_tse, .progress = TRUE)
+```
+# Taxa level analyses
+generate a list of taxa, add the word GUT in front of the taxa
+```{r}
+taxa_rank_list <- function(x, y) {
+  list_names <- colnames(x) %>%
+    stringr::str_subset("GUT_") %>%
+    rlang::set_names()
+}
+```
+```{r}
+taxa_rank_list <- dfs %>%
+  purrr::imap(taxa_rank_list, .progress = TRUE)
+```
+## BMI
+From the taxa list, add rank, and generate linear model for each taxa, adjust for FDR using BH
+```{r, message=FALSE}
+df_lm_bmi_results <- taxa_rank_list %>%
+  purrr::map_df(~tibble::tibble(taxa = .x), .id = "rank") %>% 
+  tidyr::gather(rank, taxa) %>%
+  dplyr::mutate(results = purrr::map2(rank, taxa, ~lm_bmi_model_for_taxon(df = dfs, term = .y, rank = .x))) %>%
+  dplyr::mutate(results = purrr::map(results, ~broom::tidy(.x, conf.int = TRUE)))  %>%
+  tidyr::unnest(results) %>%
+  dplyr::filter(stringr::str_detect(term, "term")) %>%
+  dplyr::mutate(qval_fdr = p.adjust(p.value, method = "BH"))
+```
+Results
+```{r}
+df_lm_bmi_results %>%
+  dplyr::arrange(p.value) %>% 
+  dplyr::filter(qval_fdr < 0.05) %>%
+  DT::datatable(caption = "Linear model for BMI")
+  
 ```
