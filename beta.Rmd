@@ -1,5 +1,5 @@
 ---
-title: "Obesity measures ANCOMBC"
+title: "Obesity measures-Permanova"
 author: "Li-Fang Yeo"
 date: "2024-12-31"
 output: html_document
@@ -74,94 +74,91 @@ tse %>%
   tse_meta(rownames = FALSE) %>%
   mytableone(vars)
 ```
-Species
+# Beta diversity
+Calculate RDA using Bray-curtis at the species level with only age and sex covariates
 ```{r}
-tse_species <- mia::subsetByPrevalentFeatures(tse, rank = "Species",
-                                              detection = 0.1/100,
-                                              prevalence = 5/100,
-                                              as_relative = TRUE)
-```
-ANCOM-BC2 for BMI
-```{r}
-pcol <- glue::glue("q_BMI")
-```
-```{r}
-ancombc2 <- tse_species %>%
-  ANCOMBC::ancombc2(data = .,
-                    fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
-                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
-                                    "Q57", "BMI") %>%
-                      stringr::str_c(collapse = "+"),
-                    assay.type = "counts",
-                    p_adj_method = "fdr",
-                    verbose = TRUE,
-                    neg_lb = TRUE)
-```
-```{r}
-df_all <- ancombc2$res %>%
-  dplyr::select(taxon, contains("BMI")) %>%
-  dplyr::arrange(!!rlang::sym(pcol))
+beta_BMI2 <- tse %>%  mia::mergeFeaturesByRank(rank = "Species") %>% 
+   mia::transformAssay(method = "relabundance") %>%
+    mia::runRDA(assay.type = "relabundance",
+              formula = assay ~ BL_AGE + MEN + PREVAL_DIAB + 
+                                PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                ALKI2_FR02 + HFC + Q57 + BMI,
+               distance = "bray",
+              na.action = na.exclude)
 ```
 
 ```{r}
-df_all %>%
-  round_numeric_columns() %>% 
-  dplyr::filter(q_BMI < 0.05) %>%
-  DT::datatable(caption = "BMI")
-```
-ANCOM-BC2 for waist circ
-```{r}
-pcol <- glue::glue("q_VYOTARO")
+rda_info <- attr(SingleCellExperiment::reducedDim(beta_BMI2, "RDA"), "significance")
+
 ```
 ```{r}
-ancombc2 <- tse_species %>%
-  ANCOMBC::ancombc2(data = .,
-                    fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
-                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
-                                    "Q57", "VYOTARO") %>%
-                      stringr::str_c(collapse = "+"),
-                    assay.type = "counts",
-                    p_adj_method = "fdr",
-                    verbose = TRUE,
-                    neg_lb = TRUE)
+rda_info$permanova %>%
+ knitr::kable() %>%
+ write.csv("./permanova/permanova-bmi2.csv")
+rda_info$homogeneity %>%  
+ knitr::kable() %>%
+ write.csv("./permanova/homogeneity-bmi2.csv")
 ```
+ANOVA model
 ```{r}
-df_all <- ancombc2$res %>%
-  dplyr::select(taxon, contains("VYOTARO")) %>%
-  dplyr::arrange(!!rlang::sym(pcol))
+rda_info$permanova %>% 
+  knitr::kable()
+```
+# Waist circumference
+```{r}
+beta_vyo2 <- tse %>%  mia::mergeFeaturesByRank(rank = "Species") %>% 
+   mia::transformAssay(method = "relabundance") %>%
+    mia::runRDA(assay.type = "relabundance",
+              formula = assay ~ BL_AGE + MEN + PREVAL_DIAB + 
+                                PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                ALKI2_FR02 + HFC + Q57 + VYOTARO,
+               distance = "bray",
+              na.action = na.exclude)
 ```
 
 ```{r}
-df_all %>%
-  round_numeric_columns() %>% 
-  dplyr::filter(q_VYOTARO < 0.05) %>%
-  DT::datatable(caption = "VYOTARO")
-```
-ANCOM-BC2 for WHR
-```{r}
-pcol <- glue::glue("q_WHR")
+rda_info <- attr(SingleCellExperiment::reducedDim(beta_vyo2, "RDA"), "significance")
+
 ```
 ```{r}
-ancombc2 <- tse_species %>%
-  ANCOMBC::ancombc2(data = .,
-                    fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
-                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
-                                    "Q57", "WHR") %>%
-                      stringr::str_c(collapse = "+"),
-                    assay.type = "counts",
-                    p_adj_method = "fdr",
-                    verbose = TRUE,
-                    neg_lb = TRUE)
+rda_info$permanova %>%
+ knitr::kable() %>%
+ write.csv("./permanova/permanova-vyo2.csv")
+rda_info$homogeneity %>%  
+ knitr::kable() %>%
+ write.csv("./permanova/homogeneity-vyo2.csv")
 ```
+ANOVA model
 ```{r}
-df_all <- ancombc2$res %>%
-  dplyr::select(taxon, contains("WHR")) %>%
-  dplyr::arrange(!!rlang::sym(pcol))
+rda_info$permanova %>% 
+  knitr::kable()
+```
+# Waist hip ratio
+```{r}
+beta_whr2 <- tse %>%  mia::mergeFeaturesByRank(rank = "Species") %>% 
+   mia::transformAssay(method = "relabundance") %>%
+    mia::runRDA(assay.type = "relabundance",
+              formula = assay ~ BL_AGE + MEN + PREVAL_DIAB + 
+                                PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                ALKI2_FR02 + HFC + Q57 + WHR,
+               distance = "bray",
+              na.action = na.exclude)
 ```
 
 ```{r}
-df_all %>%
-  round_numeric_columns() %>% 
-  dplyr::filter(q_WHR < 0.05) %>%
-  DT::datatable(caption = "WHR")
+rda_info <- attr(SingleCellExperiment::reducedDim(beta_whr2, "RDA"), "significance")
+
+```
+```{r}
+rda_info$permanova %>%
+ knitr::kable() %>%
+ write.csv("./permanova/permanova-whr2.csv")
+rda_info$homogeneity %>%  
+ knitr::kable() %>%
+ write.csv("./permanova/homogeneity-whr2.csv")
+```
+ANOVA model
+```{r}
+rda_info$permanova %>% 
+  knitr::kable()
 ```
