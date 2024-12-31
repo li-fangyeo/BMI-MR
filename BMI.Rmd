@@ -75,9 +75,6 @@ tse %>%
   tse_meta(rownames = FALSE) %>%
   mytableone(vars)
 ```
-```{r}
-
-```
 # Model function definitions
 BMI model + covariates
 ```{r}

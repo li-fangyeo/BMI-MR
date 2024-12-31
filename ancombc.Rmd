@@ -1,0 +1,164 @@
+---
+title: "Obesity measures ANCOMBC"
+author: "Li-Fang Yeo"
+date: "2024-12-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+```{r}
+library(magrittr)
+library(ANCOMBC)
+library(mia)
+```
+```{r}
+devtools::load_all()
+```
+Command line arguments
+```{r}
+args <- list(
+  optparse::make_option("--east", action="store_true", default=FALSE, help="Exclude Eastern Finland subpopulation [default \"%default\"]"),
+  optparse::make_option("--west", action="store_true", default=FALSE, help="Exclude Eastern Finland subpopulation [default \"%default\"]"),
+  optparse::make_option("--low", action="store_true", default=FALSE, help="Exclude low GFR [default \"%default\"]"),
+  optparse::make_option("--high", action="store_true", default=FALSE, help="Exclude high GFR [default \"%default\"]"),
+  optparse::make_option("--detection", type = "numeric", default = 0.1/100, help = "Detection limit [default %default]"),
+optparse::make_option("--prevalence", type = "numeric", default = 5/100, help = "Prevalence limit [default %default]")) %>% 
+  optparse::OptionParser(option_list = .) %>%
+  optparse::parse_args()
+```
+```{r}
+args %>% tibble::enframe(name = "Option", value = "Argument") %>% DT::datatable()
+```
+Data definition
+```{r}
+vars <- list(BL_AGE = "Age",
+             MEN = "Men",
+             BMI = "BMI",
+             VYOTARO = "Waist circ",
+             WHR = "waist-hip ratio",
+             PREVAL_DIAB = "Diabetes",
+             PREVAL_HFAIL_STRICT = "Heart failure",
+             CURR_SMOKE = "Smoking",
+             ALKI2_FR02 = "Alcohol consumption per week (g)",
+             HFC = "Healthy food choices",
+             Q57 = "Exercise",
+             shannon = "Shannon diversity")
+```
+Read data in and filter for covariates
+```{r}
+tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
+  mia::transformAssay(assay.type = "counts", method = "relabundance") %>% 
+  mia::estimateDiversity(assay.type = "counts", index = "shannon", name = "shannon") %>%
+  tse_add_food_score(HFC) %>%
+  tse_mutate(Q57 = dplyr::if_else(Q57 %in% c(3, 4), 3, Q57)) %>%
+  tse_mutate(dplyr::across(c(MEN,
+                             CURR_SMOKE,
+                             Q57,
+                             dplyr::contains("INCIDENT"),
+                             dplyr::contains("PREVAL")), as.factor)) %>% 
+  #pregnant
+  tse_filter(GRAVID %in% c(1, NA)) %>%
+  #antibiotic use in the past 1 month
+  tse_filter(BL_USE_RX_J01_1mo %in% c(0, NA)) %>%
+  #missing covariate
+  tse_filter(dplyr::if_all(dplyr::one_of(names(vars)), not_na)) %>%
+  #low reads
+  tse_filter(total_reads > 50000) %>%
+  tse_select(names(vars))
+```
+# Characteristic
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>%
+  mytableone(vars)
+```
+Species
+```{r}
+tse_species <- mia::subsetByPrevalentFeatures(tse, rank = "Species",
+                                              detection = 0.1/100,
+                                              prevalence = 5/100,
+                                              as_relative = TRUE)
+```
+ANCOM-BC2 for BMI
+```{r}
+pcol <- glue::glue("q_BMI")
+```
+```{r}
+ancombc2 <- tse_species %>%
+  ANCOMBC::ancombc2(data = .,
+                    fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
+                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
+                                    "Q57", "BMI") %>%
+                      stringr::str_c(collapse = "+"),
+                    assay.type = "counts",
+                    p_adj_method = "fdr",
+                    verbose = TRUE,
+                    neg_lb = TRUE)
+```
+```{r}
+df_all <- ancombc2$res %>%
+  dplyr::select(taxon, contains("BMI")) %>%
+  dplyr::arrange(!!rlang::sym(pcol))
+```
+
+```{r}
+df_all %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "BMI")
+```
+ANCOM-BC2 for waist circ
+```{r}
+pcol <- glue::glue("q_VYOTARO")
+```
+```{r}
+ancombc2 <- tse_species %>%
+  ANCOMBC::ancombc2(data = .,
+                    fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
+                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
+                                    "Q57", "VYOTARO") %>%
+                      stringr::str_c(collapse = "+"),
+                    assay.type = "counts",
+                    p_adj_method = "fdr",
+                    verbose = TRUE,
+                    neg_lb = TRUE)
+```
+```{r}
+df_all <- ancombc2$res %>%
+  dplyr::select(taxon, contains("VYOTARO")) %>%
+  dplyr::arrange(!!rlang::sym(pcol))
+```
+
+```{r}
+df_all %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "VYOTARO")
+```
+ANCOM-BC2 for WHR
+```{r}
+pcol <- glue::glue("q_WHR")
+```
+```{r}
+ancombc2 <- tse_species %>%
+  ANCOMBC::ancombc2(data = .,
+                    fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
+                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
+                                    "Q57", "WHR") %>%
+                      stringr::str_c(collapse = "+"),
+                    assay.type = "counts",
+                    p_adj_method = "fdr",
+                    verbose = TRUE,
+                    neg_lb = TRUE)
+```
+```{r}
+df_all <- ancombc2$res %>%
+  dplyr::select(taxon, contains("WHR")) %>%
+  dplyr::arrange(!!rlang::sym(pcol))
+```
+
+```{r}
+df_all %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "WHR")
+```
