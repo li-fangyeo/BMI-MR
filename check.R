@@ -19,7 +19,7 @@ bmi <- df_lm_bmi_results %>%
 
 wis <- df_lm_waist_results %>%
   dplyr::slice(1:10) %>%
-  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%§
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
   dplyr::mutate(across(everything(),~ gsub("GUT_Species:","", .))) %>%
   dplyr::mutate_at(c(2:6), as.numeric) %>%
   dplyr::mutate_at(c(2:4),round,3) %>%
