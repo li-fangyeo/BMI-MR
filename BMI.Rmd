@@ -79,8 +79,8 @@ tse %>%
 BMI model + covariates
 ```{r}
 lm_bmi_partial <-  purrr::partial(lm,
-                                  formula = BMI ~
-                                    term + BL_AGE + MEN +
+                                  formula = scale(BMI) ~
+                                    scale(term) + BL_AGE + MEN +
                                     PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57)
 ```
@@ -95,8 +95,8 @@ lm_bmi_model_for_taxon <- function(df, term, rank = NULL) {
 Waist circ. model + covariates
 ```{r}
 lm_waist_partial <-  purrr::partial(lm,
-                                  formula = VYOTARO ~
-                                    term + BL_AGE + MEN +
+                                  formula = scale(VYOTARO) ~
+                                    scale(term) + BL_AGE + MEN +
                                     PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57)
 ```
@@ -111,8 +111,8 @@ lm_waist_model_for_taxon <- function(df, term, rank = NULL) {
 WHR model + covariates
 ```{r}
 lm_whr_partial <-  purrr::partial(lm,
-                                  formula = WHR ~
-                                    term + BL_AGE + MEN +
+                                  formula = scale(WHR) ~
+                                    scale(term) + BL_AGE + MEN +
                                     PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57)
 ```
@@ -130,7 +130,7 @@ BMI
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(BMI ~ shannon + BL_AGE + MEN, data = .) %>% 
+  lm(scale(BMI) ~ scale(shannon) + BL_AGE + MEN, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
   DT::datatable(caption = "Alpha diversity to BMI")
@@ -138,7 +138,7 @@ tse %>%
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(BMI ~ shannon + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+  lm(scale(BMI) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
@@ -148,7 +148,7 @@ Waist circumference
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(VYOTARO ~ shannon + BL_AGE + MEN, data = .) %>% 
+  lm(scale(VYOTARO) ~ scale(shannon) + BL_AGE + MEN, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
   DT::datatable(caption = "Alpha diversity to Vyot")
@@ -156,7 +156,7 @@ tse %>%
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(VYOTARO ~ shannon + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+  lm(scale(VYOTARO) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
@@ -166,7 +166,7 @@ Hip to waist ratio
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(WHR ~ shannon + BL_AGE + MEN, data = .) %>% 
+  lm(scale(WHR) ~ scale(shannon) + BL_AGE + MEN, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
   DT::datatable(caption = "Alpha diversity to WHR")
@@ -174,7 +174,7 @@ tse %>%
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(WHR ~ shannon + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+  lm(scale(WHR) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
@@ -261,7 +261,7 @@ df_lm_waist_results <- taxa_rank_list %>%
 ```
 Results
 ```{r}
-df_lm_waist_results <- df_lm_waist_results %>%
+df_lm_waist_results %>%
   dplyr::arrange(p.value) %>% 
   dplyr::filter(qval_fdr < 0.05) %>%
   DT::datatable(caption = "Linear model for Waist Circ")

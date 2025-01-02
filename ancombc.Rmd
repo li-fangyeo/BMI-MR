@@ -98,13 +98,13 @@ ancombc2 <- tse_species %>%
                     neg_lb = TRUE)
 ```
 ```{r}
-df_all <- ancombc2$res %>%
+BMI_df <- ancombc2$res %>%
   dplyr::select(taxon, contains("BMI")) %>%
   dplyr::arrange(!!rlang::sym(pcol))
 ```
 
 ```{r}
-df_all %>%
+BMI_df %>%
   round_numeric_columns() %>% 
   dplyr::filter(q_BMI < 0.05) %>%
   DT::datatable(caption = "BMI")
@@ -126,13 +126,13 @@ ancombc2 <- tse_species %>%
                     neg_lb = TRUE)
 ```
 ```{r}
-df_all <- ancombc2$res %>%
+waist_df <- ancombc2$res %>%
   dplyr::select(taxon, contains("VYOTARO")) %>%
   dplyr::arrange(!!rlang::sym(pcol))
 ```
 
 ```{r}
-df_all %>%
+waist_df %>%
   round_numeric_columns() %>% 
   dplyr::filter(q_VYOTARO < 0.05) %>%
   DT::datatable(caption = "VYOTARO")
@@ -154,13 +154,13 @@ ancombc2 <- tse_species %>%
                     neg_lb = TRUE)
 ```
 ```{r}
-df_all <- ancombc2$res %>%
+WHR_df <- ancombc2$res %>%
   dplyr::select(taxon, contains("WHR")) %>%
   dplyr::arrange(!!rlang::sym(pcol))
 ```
 
 ```{r}
-df_all %>%
+WHR_df %>%
   round_numeric_columns() %>% 
   dplyr::filter(q_WHR < 0.05) %>%
   DT::datatable(caption = "WHR")
