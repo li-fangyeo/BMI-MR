@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 library(magrittr)
 library(ANCOMBC)
 library(mia)
+library(ggplot2)
+library(dplyr)
 ```
 ```{r}
 devtools::load_all()
@@ -241,11 +243,10 @@ df_lm_bmi_results <- taxa_rank_list %>%
 ```
 Results
 ```{r}
-df_lm_bmi_results <- df_lm_bmi_results %>%
+df_lm_bmi_results %>%
   dplyr::arrange(p.value) %>% 
   dplyr::filter(qval_fdr < 0.05) %>%
   DT::datatable(caption = "Linear model for BMI")
-  
 ```
 ## WaistCirc
 From the taxa list, add rank, and generate linear model for each taxa, adjust for FDR using BH
@@ -281,12 +282,57 @@ df_lm_whr_results <- taxa_rank_list %>%
 ```
 Results
 ```{r}
-df_lm_whr_results <- df_lm_whr_results %>%
+df_lm_whr_results %>%
   dplyr::arrange(p.value) %>% 
   dplyr::filter(qval_fdr < 0.05) %>%
   DT::datatable(caption = "Linear model for Waist Hip ratio")
-  
 ```
+Top 15 significant taxa
+```{r}
+whr<- df_lm_whr_results %>%
+  dplyr::filter(qval_fdr < 0.05) %>%
+  dplyr::arrange(qval_fdr) %>%
+  dplyr::slice(1:15) %>%
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
+  dplyr::mutate(across(everything(),~ gsub("GUT_Species:","", .))) %>%
+  dplyr::mutate_at(c(2:6), as.numeric) %>%
+  dplyr::mutate_at(c(2:4),round,3) %>%
+  dplyr::mutate_at(c(5:6), round, 3) %>%
+  dplyr::mutate(Origin = rep("WHR", 15))
+
+bmi <- df_lm_bmi_results %>%
+  dplyr::slice(1:15) %>%
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
+  dplyr::mutate(across(everything(),~ gsub("GUT_Species:","", .))) %>%
+  dplyr::mutate_at(c(2:6), as.numeric) %>%
+  dplyr::mutate_at(c(2:4),round,3) %>%
+  dplyr::mutate_at(c(5:6), round, 3) %>%
+  dplyr::mutate(Origin = rep("BMI", 15))
+
+waist <- df_lm_waist_results %>%
+  dplyr::slice(1:15) %>%
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
+  dplyr::mutate(across(everything(),~ gsub("GUT_Species:","", .))) %>%
+  dplyr::mutate_at(c(2:6), as.numeric) %>%
+  dplyr::mutate_at(c(2:4),round,3) %>%
+  dplyr::mutate_at(c(5:6), round, 3) %>%
+  dplyr::mutate(Origin = rep("waist", 15))
+
+hi <- rbind(whr, bmi, waist)
+
+#define colors
+my_colors <- c("waist" = "darkgreen", "BMI" = "orange", 
+               "WHR" = "thistle")
+
+q <- ggplot(data=hi, aes(x=taxa, y=estimate, fill = Origin)) +
+  geom_bar(stat="identity", position = 'dodge') +
+  scale_fill_manual(values=my_colors) +
+  coord_flip() +
+  theme_classic() +
+  theme(axis.text.y = element_text(face = 'italic'))
+q
+```
+
 #Common taxa
 Agglomerate prevalent features
 ```{r}
@@ -393,6 +439,52 @@ df_lm_whr_results %>%
   dplyr::filter(qval_fdr < 0.05) %>%
   DT::datatable(caption = "Linear model for Waist Hip ratio")
 ```
+Top 15 significant taxa
+```{r}
+whr<- df_lm_whr_results %>%
+  dplyr::filter(qval_fdr < 0.05) %>%
+  dplyr::arrange(qval_fdr) %>%
+  dplyr::slice(1:15) %>%
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
+  dplyr::mutate(across(everything(),~ gsub("GUT_Genus:","", .))) %>%
+  dplyr::mutate_at(c(2:6), as.numeric) %>%
+  dplyr::mutate_at(c(2:4),round,3) %>%
+  dplyr::mutate_at(c(5:6), round, 3) %>%
+  dplyr::mutate(Origin = rep("WHR", 15))
+
+bmi <- df_lm_bmi_results %>%
+  dplyr::slice(1:15) %>%
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
+  dplyr::mutate(across(everything(),~ gsub("GUT_Genus:","", .))) %>%
+  dplyr::mutate_at(c(2:6), as.numeric) %>%
+  dplyr::mutate_at(c(2:4),round,3) %>%
+  dplyr::mutate_at(c(5:6), round, 3) %>%
+  dplyr::mutate(Origin = rep("BMI", 15))
+
+waist <- df_lm_waist_results %>%
+  dplyr::slice(1:15) %>%
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
+  dplyr::mutate(across(everything(),~ gsub("GUT_Genus:","", .))) %>%
+  dplyr::mutate_at(c(2:6), as.numeric) %>%
+  dplyr::mutate_at(c(2:4),round,3) %>%
+  dplyr::mutate_at(c(5:6), round, 3) %>%
+  dplyr::mutate(Origin = rep("waist", 15))
+
+hi <- rbind(whr, bmi, waist)
+
+#define colors
+my_colors <- c("waist" = "darkgreen", "BMI" = "orange", 
+               "WHR" = "thistle")
+
+q <- ggplot(data=hi, aes(x=taxa, y=estimate, fill = Origin)) +
+  geom_bar(stat="identity", position = 'dodge') +
+  scale_fill_manual(values=my_colors) +
+  coord_flip() +
+  theme_classic() +
+  theme(axis.text.y = element_text(face = 'italic'))
+q
+```
+
 #Common taxa
 Agglomerate prevalent features
 ```{r}
@@ -499,3 +591,179 @@ df_lm_whr_results %>%
   dplyr::filter(qval_fdr < 0.05) %>%
   DT::datatable(caption = "Linear model for Waist Hip ratio")
 ```
+Top 15 significant taxa
+```{r}
+whr<- df_lm_whr_results %>%
+  dplyr::filter(qval_fdr < 0.05) %>%
+  dplyr::arrange(qval_fdr) %>%
+  dplyr::slice(1:15) %>%
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
+  dplyr::mutate(across(everything(),~ gsub("GUT_Family:","", .))) %>%
+  dplyr::mutate_at(c(2:6), as.numeric) %>%
+  dplyr::mutate_at(c(2:4),round,3) %>%
+  dplyr::mutate_at(c(5:6), round, 3) %>%
+  dplyr::mutate(Origin = rep("WHR", 15))
+
+bmi <- df_lm_bmi_results %>%
+  dplyr::slice(1:15) %>%
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
+  dplyr::mutate(across(everything(),~ gsub("GUT_Family:","", .))) %>%
+  dplyr::mutate_at(c(2:6), as.numeric) %>%
+  dplyr::mutate_at(c(2:4),round,3) %>%
+  dplyr::mutate_at(c(5:6), round, 3) %>%
+  dplyr::mutate(Origin = rep("BMI", 15))
+
+waist <- df_lm_waist_results %>%
+  dplyr::slice(1:15) %>%
+  dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%
+  dplyr::mutate(across(everything(),~ gsub("GUT_Family:","", .))) %>%
+  dplyr::mutate_at(c(2:6), as.numeric) %>%
+  dplyr::mutate_at(c(2:4),round,3) %>%
+  dplyr::mutate_at(c(5:6), round, 3) %>%
+  dplyr::mutate(Origin = rep("waist", 15))
+
+hi <- rbind(whr, bmi, waist)
+
+#define colors
+my_colors <- c("waist" = "darkgreen", "BMI" = "orange", 
+               "WHR" = "thistle")
+
+q <- ggplot(data=hi, aes(x=taxa, y=estimate, fill = Origin)) +
+  geom_bar(stat="identity", position = 'dodge') +
+  scale_fill_manual(values=my_colors) +
+  coord_flip() +
+  theme_classic() +
+  theme(axis.text.y = element_text(face = 'italic'))
+q
+
+```
+
+Species
+```{r}
+tse_species <- mia::subsetByPrevalentFeatures(tse, rank = "Species",
+                                              detection = 0.1/100,
+                                              prevalence = 5/100,
+                                              as_relative = TRUE)
+```
+ANCOM-BC2 for BMI
+```{r}
+pcol <- glue::glue("q_BMI")
+```
+```{r}
+ancombc2 <- tse_species %>%
+  ANCOMBC::ancombc2(data = .,
+                    fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
+                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
+                                    "Q57", "BMI") %>%
+                      stringr::str_c(collapse = "+"),
+                    assay.type = "counts",
+                    p_adj_method = "fdr",
+                    verbose = TRUE,
+                    neg_lb = TRUE)
+```
+```{r}
+BMI_df <- ancombc2$res %>%
+  dplyr::select(taxon, contains("BMI")) %>%
+  dplyr::arrange(!!rlang::sym(pcol))
+```
+
+```{r}
+BMI_df %>%
+  round_numeric_columns() %>% 
+  dplyr::filter(q_BMI < 0.05) %>%
+  DT::datatable(caption = "BMI")
+```
+ANCOM-BC2 for waist circ
+```{r}
+pcol <- glue::glue("q_VYOTARO")
+```
+```{r}
+ancombc2 <- tse_species %>%
+  ANCOMBC::ancombc2(data = .,
+                    fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
+                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
+                                    "Q57", "VYOTARO") %>%
+                      stringr::str_c(collapse = "+"),
+                    assay.type = "counts",
+                    p_adj_method = "fdr",
+                    verbose = TRUE,
+                    neg_lb = TRUE)
+```
+```{r}
+waist_df <- ancombc2$res %>%
+  dplyr::select(taxon, contains("VYOTARO")) %>%
+  dplyr::arrange(!!rlang::sym(pcol))
+```
+
+```{r}
+waist_df %>%
+  round_numeric_columns() %>% 
+  dplyr::filter(q_VYOTARO < 0.05) %>%
+  DT::datatable(caption = "VYOTARO")
+```
+ANCOM-BC2 for WHR
+```{r}
+pcol <- glue::glue("q_WHR")
+```
+```{r}
+ancombc2 <- tse_species %>%
+  ANCOMBC::ancombc2(data = .,
+                    fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
+                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
+                                    "Q57", "WHR") %>%
+                      stringr::str_c(collapse = "+"),
+                    assay.type = "counts",
+                    p_adj_method = "fdr",
+                    verbose = TRUE,
+                    neg_lb = TRUE)
+```
+```{r}
+WHR_df <- ancombc2$res %>%
+  dplyr::select(taxon, contains("WHR")) %>%
+  dplyr::arrange(!!rlang::sym(pcol))
+```
+
+```{r}
+WHR_df %>%
+  round_numeric_columns() %>% 
+  dplyr::filter(q_WHR < 0.05) %>%
+  DT::datatable(caption = "WHR")
+```
+```{r}
+#ANCOMBC
+sig.taxa <- BMI_df %>%
+  dplyr::slice(1:10) %>%
+  select(taxon)
+
+waist <- waist_df %>% 
+  dplyr::right_join(sig.taxa, join_by(taxon == taxon)) %>%
+  rename_at('lfc_VYOTARO', ~'lfc') %>%
+  dplyr::mutate(Origin = rep("waist", 10)) %>%
+  dplyr::select(taxon, lfc, Origin)
+
+bmi <- BMI_df %>%
+  dplyr::right_join(sig.taxa, join_by(taxon == taxon)) %>%
+  rename_at('lfc_BMI', ~'lfc') %>%
+  dplyr::mutate(Origin = rep("BMI", 10)) %>%
+  dplyr::select(taxon, lfc, Origin)
+whr <- WHR_df %>%
+  dplyr::right_join(sig.taxa, join_by(taxon == taxon)) %>%
+  rename_at('lfc_WHR', ~'lfc') %>%
+  dplyr::mutate(Origin = rep("WHR", 10))%>%
+  dplyr::select(taxon, lfc, Origin)
+hi <- rbind(whr, bmi, waist)
+
+#define colors
+my_colors <- c("waist" = "darkgreen", "BMI" = "orange", 
+               "WHR" = "pink")
+
+p <- ggplot(data=hi, aes(x=taxon, y=lfc, fill = Origin)) +
+  geom_bar(stat="identity", position = 'dodge') +
+  scale_fill_manual(values=my_colors) +
+  coord_flip() +
+  theme_classic() +
+  theme(axis.text.y = element_text(face = 'italic'))
+p
+
+```
+
