@@ -1,7 +1,7 @@
 ---
 title: "Cross-sectional BMI, Waist and waist-hip ratio and gut microbiome"
 author: "Li-Fang Yeo"
-date: "27-12-2024"
+date: "28-02-2025"
 output: html_document
 ---
 
@@ -41,22 +41,25 @@ vars <- list(BL_AGE = "Age",
              VYOTARO = "Waist circ",
              WHR = "waist-hip ratio",
              PREVAL_DIAB = "Diabetes",
-             PREVAL_HFAIL_STRICT = "Heart failure",
+             PREVAL_CVD = "Cardiovascular disease",
              CURR_SMOKE = "Smoking",
              ALKI2_FR02 = "Alcohol consumption per week (g)",
              HFC = "Healthy food choices",
              Q57 = "Exercise",
+             observed = "Observed richness",
              shannon = "Shannon diversity")
 ```
 Read data in and filter for covariates
 ```{r}
 tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
   mia::transformAssay(assay.type = "counts", method = "relabundance") %>% 
-  mia::estimateDiversity(assay.type = "counts", index = "shannon", name = "shannon") %>%
+  mia::addAlpha(assay.type = "counts", index = c("shannon", "observed"), name = c("shannon", "observed"), niter = 10) %>%
   tse_add_food_score(HFC) %>%
+  #combine values into one
   tse_mutate(Q57 = dplyr::if_else(Q57 %in% c(3, 4), 3, Q57)) %>%
   tse_mutate(dplyr::across(c(MEN,
                              CURR_SMOKE,
+                             EAST,
                              Q57,
                              dplyr::contains("INCIDENT"),
                              dplyr::contains("PREVAL")), as.factor)) %>% 
@@ -83,7 +86,7 @@ BMI model + covariates
 lm_bmi_partial <-  purrr::partial(lm,
                                   formula = scale(BMI) ~
                                     scale(term) + BL_AGE + MEN +
-                                    PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                    PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57)
 ```
 ```{r}
@@ -99,7 +102,7 @@ Waist circ. model + covariates
 lm_waist_partial <-  purrr::partial(lm,
                                   formula = scale(VYOTARO) ~
                                     scale(term) + BL_AGE + MEN +
-                                    PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                    PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57)
 ```
 ```{r}
@@ -115,7 +118,7 @@ WHR model + covariates
 lm_whr_partial <-  purrr::partial(lm,
                                   formula = scale(WHR) ~
                                     scale(term) + BL_AGE + MEN +
-                                    PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+                                    PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57)
 ```
 ```{r}
@@ -140,12 +143,31 @@ tse %>%
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(scale(BMI) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+  lm(scale(BMI) ~ scale(observed) + BL_AGE + MEN, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to BMI")
+```
+
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(scale(BMI) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
   DT::datatable(caption = "Alpha diversity to BMI")
 ```
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(scale(BMI) ~ scale(observed) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
+                                    ALKI2_FR02 + HFC + Q57, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to BMI")
+```
+
 Waist circumference
 ```{r}
 tse %>%
@@ -158,12 +180,31 @@ tse %>%
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(scale(VYOTARO) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+  lm(scale(VYOTARO) ~ scale(observed) + BL_AGE + MEN, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to Vyot")
+```
+
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(scale(VYOTARO) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
   DT::datatable(caption = "Alpha diversity to Vyot")
 ```
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(scale(VYOTARO) ~ scale(observed) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
+                                    ALKI2_FR02 + HFC + Q57, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to Vyot")
+```
+
 Hip to waist ratio
 ```{r}
 tse %>%
@@ -176,18 +217,37 @@ tse %>%
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(scale(WHR) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_HFAIL_STRICT + CURR_SMOKE +
+  lm(scale(WHR) ~ scale(observed) + BL_AGE + MEN, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to WHR")
+```
+
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(scale(WHR) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
   DT::datatable(caption = "Alpha diversity to WHR")
 ```
+```{r}
+tse %>%
+  tse_meta(rownames = FALSE) %>% 
+  lm(scale(WHR) ~ scale(observed) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
+                                    ALKI2_FR02 + HFC + Q57, data = .) %>% 
+  broom::tidy(conf.int = TRUE) %>%
+  round_numeric_columns() %>% 
+  DT::datatable(caption = "Alpha diversity to WHR")
+```
+
 #Common taxa
 Agglomerate prevalent features
 ```{r}
 #reads were filtered to detection threshold of 0.1% relative abundance, in 5% of samples
 #This is to filter out rare taxa, to ensure we are anlaysing microbes that are likely to be real and not sequencing artefacts
-subset_features_partial <-  purrr::partial(mia::subsetByPrevalentFeatures,
+subset_features_partial <-  purrr::partial(mia::agglomerateByPrevalence,
                                            x = tse,
                                            detection = args$detection,
                                            prevalence = args$prevalence,
@@ -204,7 +264,7 @@ Melt tse to data frame
 ```{r}
 melt_tse <- function(x, method = "clr") {
   mia::transformAssay(x, method = method, pseudocount = 1) %>% 
-    mia::meltAssay(add_row_data = TRUE, assay_name = method) %>%
+    mia::meltSE(add_row_data = TRUE, assay_name = method) %>%
     dplyr::mutate(FeatureID = glue::glue("GUT_{FeatureID}")) %>%
     dplyr::mutate(FeatureID = stringr::str_replace_all(FeatureID, c(" " = "_", "-" = "_"))) %>% 
     dplyr::select(SampleID, FeatureID, clr) %>%
@@ -338,7 +398,7 @@ Agglomerate prevalent features
 ```{r}
 #reads were filtered to detection threshold of 0.1% relative abundance, in 5% of samples
 #This is to filter out rare taxa, to ensure we are anlaysing microbes that are likely to be real and not sequencing artefacts
-subset_features_partial <-  purrr::partial(mia::subsetByPrevalentFeatures,
+subset_features_partial <-  purrr::partial(mia::agglomerateByPrevalence,
                                            x = tse,
                                            detection = args$detection,
                                            prevalence = args$prevalence,
@@ -355,7 +415,7 @@ Melt tse to data frame
 ```{r}
 melt_tse <- function(x, method = "clr") {
   mia::transformAssay(x, method = method, pseudocount = 1) %>% 
-    mia::meltAssay(add_row_data = TRUE, assay_name = method) %>%
+    mia::meltSE(add_row_data = TRUE, assay_name = method) %>%
     dplyr::mutate(FeatureID = glue::glue("GUT_{FeatureID}")) %>%
     dplyr::mutate(FeatureID = stringr::str_replace_all(FeatureID, c(" " = "_", "-" = "_"))) %>% 
     dplyr::select(SampleID, FeatureID, clr) %>%
@@ -490,7 +550,7 @@ Agglomerate prevalent features
 ```{r}
 #reads were filtered to detection threshold of 0.1% relative abundance, in 5% of samples
 #This is to filter out rare taxa, to ensure we are anlaysing microbes that are likely to be real and not sequencing artefacts
-subset_features_partial <-  purrr::partial(mia::subsetByPrevalentFeatures,
+subset_features_partial <-  purrr::partial(mia::agglomerateByPrevalence,
                                            x = tse,
                                            detection = args$detection,
                                            prevalence = args$prevalence,
@@ -507,7 +567,7 @@ Melt tse to data frame
 ```{r}
 melt_tse <- function(x, method = "clr") {
   mia::transformAssay(x, method = method, pseudocount = 1) %>% 
-    mia::meltAssay(add_row_data = TRUE, assay_name = method) %>%
+    mia::meltSE(add_row_data = TRUE, assay_name = method) %>%
     dplyr::mutate(FeatureID = glue::glue("GUT_{FeatureID}")) %>%
     dplyr::mutate(FeatureID = stringr::str_replace_all(FeatureID, c(" " = "_", "-" = "_"))) %>% 
     dplyr::select(SampleID, FeatureID, clr) %>%
@@ -640,7 +700,7 @@ q
 
 Species
 ```{r}
-tse_species <- mia::subsetByPrevalentFeatures(tse, rank = "Species",
+tse_species <- mia::agglomerateByPrevalence(tse, rank = "Species",
                                               detection = 0.1/100,
                                               prevalence = 5/100,
                                               as_relative = TRUE)
@@ -653,7 +713,7 @@ pcol <- glue::glue("q_BMI")
 ancombc2 <- tse_species %>%
   ANCOMBC::ancombc2(data = .,
                     fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
-                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
+                                    "PREVAL_CVD", "ALKI2_FR02", "HFC",
                                     "Q57", "BMI") %>%
                       stringr::str_c(collapse = "+"),
                     assay.type = "counts",
@@ -681,7 +741,7 @@ pcol <- glue::glue("q_VYOTARO")
 ancombc2 <- tse_species %>%
   ANCOMBC::ancombc2(data = .,
                     fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
-                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
+                                    "PREVAL_CVD", "ALKI2_FR02", "HFC",
                                     "Q57", "VYOTARO") %>%
                       stringr::str_c(collapse = "+"),
                     assay.type = "counts",
@@ -709,7 +769,7 @@ pcol <- glue::glue("q_WHR")
 ancombc2 <- tse_species %>%
   ANCOMBC::ancombc2(data = .,
                     fix_formula = c("BL_AGE", "MEN", "PREVAL_DIAB", "CURR_SMOKE",
-                                    "PREVAL_HFAIL_STRICT", "ALKI2_FR02", "HFC",
+                                    "PREVAL_CVD", "ALKI2_FR02", "HFC",
                                     "Q57", "WHR") %>%
                       stringr::str_c(collapse = "+"),
                     assay.type = "counts",
