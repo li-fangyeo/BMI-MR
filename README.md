@@ -1,5 +1,7 @@
 # BMI
-
+Cross sectional analysis between obesity indicators and gut microbiome in FINRISK 2002.
+Using eastern finland as discovery cohort, validating significant taxa in western finland.
+Using Mendelian randomization to find causal taxa for obesity indicators
 
 
 ## Getting started
