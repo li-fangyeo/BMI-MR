@@ -24,6 +24,13 @@ Western finland cohort, n = 1940
 
 Microbiota data was filtered to only keep significant taxa found in the discovery cohort. And the same linear models, corrected for covariates, were used to validate association signals. 
 
+No. of significant taxa:
+| Indicator | Discovery | Validation |
+| --------- | --------- | ---------- |
+| BMI       | 164       | 132        |
+| Waist cm  | 159       | 120        |
+| WHR       | 149       | 105        |
+
 ### Mendelian randomization
 Detailed steps can be found in the mendelian randomization page. Briefly, significant taxa validated in western finland cohort was used to establish putative causative links.
 
