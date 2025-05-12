@@ -24,7 +24,7 @@ Western finland cohort, n = 1940
 
 Microbiota data was filtered to only keep significant taxa found in the discovery cohort. And the same linear models, corrected for covariates, were used to validate association signals. 
 
-No. of significant taxa:
+No. of significant taxa after FDR correction:
 | Indicator | Discovery | Validation |
 | --------- | --------- | ---------- |
 | BMI       | 164       | 132        |
