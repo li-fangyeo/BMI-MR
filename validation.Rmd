@@ -3,6 +3,7 @@ title: "obesity-validation"
 author: "Li-Fang Yeo"
 date: "2025-03-04"
 output: html_document
+Note: This needs to be run AFTER eastwest.Rmd
 ---
 
 ```{r setup, include=FALSE}
@@ -53,6 +54,29 @@ vars <- list(BL_AGE = "Age",
 ```
 Read data in and filter for covariates
 ```{r}
+tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
+  mia::transformAssay(assay.type = "counts", method = "relabundance") %>% 
+  mia::addAlpha(assay.type = "counts", index = c("shannon", "observed"), name = c("shannon", "observed"), niter = 10) %>%
+  tse_add_food_score(HFC) %>%
+  #combine values into one
+  tse_mutate(Q57 = dplyr::if_else(Q57 %in% c(3, 4), 3, Q57)) %>%
+  tse_mutate(dplyr::across(c(MEN,
+                             CURR_SMOKE,
+                             EAST,
+                             Q57,
+                             dplyr::contains("INCIDENT"),
+                             dplyr::contains("PREVAL")), as.factor)) %>% 
+  #pregnant
+  tse_filter(GRAVID %in% c(1, NA)) %>%
+  #antibiotic use in the past 1 month
+  tse_filter(BL_USE_RX_J01_1mo %in% c(0, NA)) %>%
+  #missing covariate
+  tse_filter(dplyr::if_all(dplyr::one_of(names(vars)), not_na)) %>%
+  #low reads
+  tse_filter(total_reads > 50000) %>%
+  #filter for eastern finland
+  tse_select(names(vars))
+
 #turn on east/west
 tse0 <- tse %>%
     #filter for eastern finland
@@ -190,8 +214,8 @@ df_lm_bmi_results <- taxa_rank_list %>%
 ```
 Results
 ```{r}
-df_lm_bmi_results %>%
-  dplyr::arrange(qval_fdr) %>% 
+you<-df_lm_bmi_results %>%
+  dplyr::arrange(qval_fdr) #%>% 
   DT::datatable(caption = "Linear model for BMI")
 ```
 Significant taxa from discovery cohort
@@ -402,12 +426,12 @@ hi <- rbind(whr, bmi, waist)
 my_colors <- c("waist" = "darkseagreen", "BMI" = "orange", 
                "WHR" = "thistle")
 
-q <- ggplot(data=hi, aes(x=taxa, y=estimate, fill = Origin)) +
+bb <- ggplot(data=hi, aes(x=taxa, y=estimate, fill = Origin)) +
   geom_bar(stat="identity", position = 'dodge') +
   scale_fill_manual(values=my_colors) +
   coord_flip() +
   theme_classic() +
   theme(axis.text.y = element_text(face = 'italic'))
-q
+bb
 ```
 
