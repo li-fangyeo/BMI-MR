@@ -25,8 +25,8 @@ args <- list(
   optparse::make_option("--west", action="store_true", default=FALSE, help="Exclude Eastern Finland subpopulation [default \"%default\"]"),
   optparse::make_option("--low", action="store_true", default=FALSE, help="Exclude low GFR [default \"%default\"]"),
   optparse::make_option("--high", action="store_true", default=FALSE, help="Exclude high GFR [default \"%default\"]"),
-  optparse::make_option("--detection", type = "numeric", default = 0.1/100, help = "Detection limit [default %default]"),
-optparse::make_option("--prevalence", type = "numeric", default = 5/100, help = "Prevalence limit [default %default]")) %>% 
+  optparse::make_option("--detection", type = "numeric", default = 1/100, help = "Detection limit [default %default]"),
+optparse::make_option("--prevalence", type = "numeric", default = 25/100, help = "Prevalence limit [default %default]")) %>% 
   optparse::OptionParser(option_list = .) %>%
   optparse::parse_args()
 ```
@@ -47,7 +47,10 @@ vars <- list(BL_AGE = "Age",
              HFC = "Healthy food choices",
              Q57 = "Exercise",
              observed = "Observed richness",
-             shannon = "Shannon diversity")
+             shannon = "Shannon diversity",
+             total_reads = "Total reads",
+             FID = "Family ID",
+             Sample_ID.col_from_pheno ="IID")
 ```
 Read data in and filter for covariates
 ```{r}
