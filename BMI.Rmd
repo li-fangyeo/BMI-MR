@@ -23,10 +23,8 @@ Command line arguments
 args <- list(
   optparse::make_option("--east", action="store_true", default=FALSE, help="Exclude Eastern Finland subpopulation [default \"%default\"]"),
   optparse::make_option("--west", action="store_true", default=FALSE, help="Exclude Eastern Finland subpopulation [default \"%default\"]"),
-  optparse::make_option("--low", action="store_true", default=FALSE, help="Exclude low GFR [default \"%default\"]"),
-  optparse::make_option("--high", action="store_true", default=FALSE, help="Exclude high GFR [default \"%default\"]"),
-  optparse::make_option("--detection", type = "numeric", default = 1/100, help = "Detection limit [default %default]"),
-optparse::make_option("--prevalence", type = "numeric", default = 25/100, help = "Prevalence limit [default %default]")) %>% 
+  optparse::make_option("--detection", type = "numeric", default = 0.1/100, help = "Detection limit [default %default]"),
+  optparse::make_option("--prevalence", type = "numeric", default = 5/100, help = "Prevalence limit [default %default]")) %>% 
   optparse::OptionParser(option_list = .) %>%
   optparse::parse_args()
 ```
@@ -56,7 +54,7 @@ Read data in and filter for covariates
 ```{r}
 tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
   mia::transformAssay(assay.type = "counts", method = "relabundance") %>% 
-  mia::addAlpha(assay.type = "counts", index = c("shannon", "observed"), name = c("shannon", "observed"), niter = 10) %>%
+  mia::addAlpha(assay.type = "counts", index = c("shannon", "observed"), name = c("shannon", "observed")) %>%
   tse_add_food_score(HFC) %>%
   #combine values into one
   tse_mutate(Q57 = dplyr::if_else(Q57 %in% c(3, 4), 3, Q57)) %>%
