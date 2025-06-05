@@ -78,25 +78,24 @@ pdf("hutan.pdf", width = 15, height = 7)
 print(hutan_ft)
 dev.off()
 
-########## plotting graph
+########## plotting scatterplot for IVW#########
 library(plotly)
 library(htmlwidgets)
 library(webshot)
-#waist hip ratio - Mediterraneibacter_A_155507_torques
-a
 
+##From mr_plot object, it is a plotly, not a ggplot
 #bmi - CAG-313_sp0035396252
-b
+a
 #Eubacterium_I_ramulus
-c
+b
 #Massilioclostridium_coli
-d
+c
 
-plots <- c(a, b, c, d)
-hi <- subplot(a, b, c, d, nrows = 2, shareX = FALSE, shareY = TRUE, titleX = FALSE, titleY = FALSE)
-
+plots <- c(a, b, c)
+blek <- subplot(a, b, c, nrows = 1, shareX = FALSE, shareY = TRUE, titleX = FALSE, titleY = FALSE)
+blek
 # Save as HTML first
-saveWidget(hi, "MR-sig.html")
+saveWidget(blek, "MR-sig.html")
 
 # Convert HTML to PDF
 webshot("MR-sig.html", "MR-sig.pdf", delay = 5)
