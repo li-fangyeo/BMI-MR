@@ -29,11 +29,10 @@ Medi_torq <- rbind(values, df) %>%
   dplyr::mutate(Taxa = "Medirraneibacter_A_155507_torques")
 
 Mass_coli
-Medi_torq
 E_ramu
 CAG
 
-hutan <- rbind(Mass_coli, Medi_torq, E_ramu, CAG)
+hutan <- rbind(Mass_coli, E_ramu, CAG)
 write.table(hutan, "hutan.tsv", sep = "\t", quote = FALSE)
 ##12072024
 #forest plot
@@ -66,7 +65,7 @@ hutan_ft <- forest(hutan[,c(7, 1, 8, 9, 6)],
                    #sizes = hutan$SE,
                    ci_column = 3,
                    #ref_line = 1,
-                   xlim = c(-0.1, 0.12),
+                   xlim = c(-0.1, 0.1),
                    #x_trans = c("log10"),
                    xlab = "Causal estimate",
                    theme = tm)
