@@ -39,22 +39,26 @@ vars <- list(BL_AGE = "Age",
              VYOTARO = "Waist circ",
              WHR = "waist-hip ratio",
              PREVAL_DIAB = "Diabetes",
-             PREVAL_HFAIL_STRICT = "Heart failure",
+             PREVAL_CVD = "Cardiovascular disease",
              CURR_SMOKE = "Smoking",
              ALKI2_FR02 = "Alcohol consumption per week (g)",
              HFC = "Healthy food choices",
              Q57 = "Exercise",
-             shannon = "Shannon diversity")
+             shannon = "Shannon diversity",
+             observed = "Richness",
+             EAST = "Eastern finland")
 ```
 Read data in and filter for covariates
 ```{r}
 tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
   mia::transformAssay(assay.type = "counts", method = "relabundance") %>% 
-  mia::estimateDiversity(assay.type = "counts", index = "shannon", name = "shannon") %>%
+  mia::addAlpha(assay.type = "counts", index = c("shannon", "observed"), name = c("shannon", "observed")) %>%
   tse_add_food_score(HFC) %>%
+  #combine values into one
   tse_mutate(Q57 = dplyr::if_else(Q57 %in% c(3, 4), 3, Q57)) %>%
   tse_mutate(dplyr::across(c(MEN,
                              CURR_SMOKE,
+                             EAST,
                              Q57,
                              dplyr::contains("INCIDENT"),
                              dplyr::contains("PREVAL")), as.factor)) %>% 
@@ -72,23 +76,27 @@ tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
 ```{r}
 tse %>%
   tse_meta(rownames = FALSE) %>%
-  mytableone(vars)
+  dplyr::mutate(EAST = factor(ifelse(EAST == 1, "Eastern Finland" , "Western Finland"))) %>%
+  mytableone(vars,fo =  ~ .| EAST )
+
 ```
 # Beta diversity
 Calculate RDA using Bray-curtis at the species level with only age and sex covariates
 ```{r}
-beta_BMI2 <- tse %>%  mia::mergeFeaturesByRank(rank = "Species") %>% 
-   mia::transformAssay(method = "relabundance") %>%
-    mia::runRDA(assay.type = "relabundance",
-              formula = assay ~ BL_AGE + MEN + PREVAL_DIAB + 
-                                PREVAL_HFAIL_STRICT + CURR_SMOKE +
-                                ALKI2_FR02 + HFC + Q57 + BMI,
-               distance = "bray",
-              na.action = na.exclude)
+tse <- tse %>%  mia::agglomerateByRank(rank = "Species") %>% 
+  mia::transformAssay(method = "relabundance") %>%
+  mia::runRDA(FUN = getDissimilarity,
+                 assay.type = "relabundance",
+                 method = "bray",
+                 na.action = na.exclude,
+                 formula = assay ~ BL_AGE + MEN + PREVAL_DIAB + 
+                                PREVAL_CVD + CURR_SMOKE +
+                                ALKI2_FR02 + HFC + Q57 + BMI)
+
 ```
 
 ```{r}
-rda_info <- attr(SingleCellExperiment::reducedDim(beta_BMI2, "RDA"), "significance")
+rda_info <- attr(SingleCellExperiment::reducedDim(tse, "RDA"), "significance")
 
 ```
 ```{r}
@@ -98,64 +106,6 @@ rda_info$permanova %>%
 rda_info$homogeneity %>%  
  knitr::kable() %>%
  write.csv("./permanova/homogeneity-bmi2.csv")
-```
-ANOVA model
-```{r}
-rda_info$permanova %>% 
-  knitr::kable()
-```
-# Waist circumference
-```{r}
-beta_vyo2 <- tse %>%  mia::mergeFeaturesByRank(rank = "Species") %>% 
-   mia::transformAssay(method = "relabundance") %>%
-    mia::runRDA(assay.type = "relabundance",
-              formula = assay ~ BL_AGE + MEN + PREVAL_DIAB + 
-                                PREVAL_HFAIL_STRICT + CURR_SMOKE +
-                                ALKI2_FR02 + HFC + Q57 + VYOTARO,
-               distance = "bray",
-              na.action = na.exclude)
-```
-
-```{r}
-rda_info <- attr(SingleCellExperiment::reducedDim(beta_vyo2, "RDA"), "significance")
-
-```
-```{r}
-rda_info$permanova %>%
- knitr::kable() %>%
- write.csv("./permanova/permanova-vyo2.csv")
-rda_info$homogeneity %>%  
- knitr::kable() %>%
- write.csv("./permanova/homogeneity-vyo2.csv")
-```
-ANOVA model
-```{r}
-rda_info$permanova %>% 
-  knitr::kable()
-```
-# Waist hip ratio
-```{r}
-beta_whr2 <- tse %>%  mia::mergeFeaturesByRank(rank = "Species") %>% 
-   mia::transformAssay(method = "relabundance") %>%
-    mia::runRDA(assay.type = "relabundance",
-              formula = assay ~ BL_AGE + MEN + PREVAL_DIAB + 
-                                PREVAL_HFAIL_STRICT + CURR_SMOKE +
-                                ALKI2_FR02 + HFC + Q57 + WHR,
-               distance = "bray",
-              na.action = na.exclude)
-```
-
-```{r}
-rda_info <- attr(SingleCellExperiment::reducedDim(beta_whr2, "RDA"), "significance")
-
-```
-```{r}
-rda_info$permanova %>%
- knitr::kable() %>%
- write.csv("./permanova/permanova-whr2.csv")
-rda_info$homogeneity %>%  
- knitr::kable() %>%
- write.csv("./permanova/homogeneity-whr2.csv")
 ```
 ANOVA model
 ```{r}
