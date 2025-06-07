@@ -1,4 +1,4 @@
-Top 15 significant taxa
+#Top 15 significant taxa
 
 whr<- df_lm_whr_results %>%
   dplyr::select(taxa,estimate,conf.low, conf.high, p.value, qval_fdr) %>%

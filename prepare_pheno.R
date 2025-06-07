@@ -3,7 +3,7 @@
 library(mia)
 library(dplyr)
 library(readr)
-tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
+tse <- readRDS("./data/tse_mgs-20241118_104759.rds") %>%
   tse_mutate(dplyr::across(c(MEN,
                              CURR_SMOKE,
                              EAST,
@@ -25,37 +25,6 @@ pheno1 <- pheno %>%
 
 write_delim(pheno1, file = 'pheno.tsv')
 
-#The whole bacteria abundance table
-##19032025 Here I was
-tse_test <- transformAssay(tse, method = "relabundance")
-tse_test <- agglomerateByPrevalence(tse_test,
-                                    rank = "Species",
-                                    assy.type = "relabundance",
-                                    prevalence = 25 / 100,
-                                    detection = 10)
-
-tse_test <- mia::transformAssay(tse_test, method = "clr", pseudocount = 1)
-bacteria_tab <-tse_test %>% assay("clr") %>%
-  t() %>%
-  as.data.frame() %>%
-  dplyr::rename_with(~ gsub(" ", "_", .)) %>%
-  #dplyr::select(starts_with("Bifidobacterium"))
-  dplyr::select("Bifidobacterium_adolescentis") %>%
-  tibble::rownames_to_column("SampleID")
-
-bac_list <- pheno %>% 
-  tibble::rownames_to_column("SampleID") %>%
-  dplyr::right_join(bacteria_tab, join_by(SampleID == SampleID)) %>%
-  dplyr::rename(IID = FID) %>%
-  dplyr::mutate(FID = 0) %>%
-  dplyr::select(FID, IID, everything()) %>%
-  dplyr::select(-c(SampleID))
-
-write_delim(bac_list, file = 'bacteria_table.tsv')
-
-colnames_list <- bac_list %>% colnames() %>% as.data.frame()
-write.csv(colnames_list, file = 'bac_list.csv', row.names = FALSE, col.names = FALSE,quote = FALSE )
-
 #26032025
 #Katso tänne!!! I am here!!
 #Adding age and sex to covariate PC file
@@ -73,7 +42,9 @@ pheno_pca[!complete.cases(pheno_pca), ]
 write_delim(pheno_pca, file = 'pheno_pca.tsv')
 
 #preparing all validated (east and west) bacteria associated with BMI
-sig.list <- you %>%
+df_lm_whr_results <- df_lm_whr_results %>%
+  dplyr::filter(qval_fdr < 0.05)
+sig.list <- df_lm_whr_results %>%
   dplyr::mutate(across(everything(),~ gsub("GUT_","",.))) %>%
   as.data.frame()
 list <- sig.list$taxa
@@ -112,7 +83,7 @@ bac_list <- pheno %>%
   dplyr::select(FID, IID, everything()) %>%
   dplyr::select(-c(SampleID))
 
-write_delim(bac_list, file = 'bacteria_table_waist.tsv')
+write_delim(bac_list, file = 'bacteria_table_whr.tsv')
 
 #####COJO#######
 #extra analysis that wasn't inserted into main results
