@@ -1,7 +1,7 @@
 ---
 title: "Obesity indicator - EASTWEST"
 author: "Li-Fang Yeo"
-date: "05-03-2025"
+date: "06-June-2025"
 output: html_document
 ---
 
@@ -14,8 +14,7 @@ library(ANCOMBC)
 library(mia)
 library(ggplot2)
 library(dplyr)
-```
-```{r}
+
 devtools::load_all()
 ```
 Command line arguments
@@ -29,8 +28,7 @@ args <- list(
 optparse::make_option("--prevalence", type = "numeric", default = 5/100, help = "Prevalence limit [default %default]")) %>% 
   optparse::OptionParser(option_list = .) %>%
   optparse::parse_args()
-```
-```{r}
+
 args %>% tibble::enframe(name = "Option", value = "Argument") %>% DT::datatable()
 ```
 Data definition
@@ -55,7 +53,7 @@ Read data in and filter for covariates
 ```{r}
 tse <- readRDS("../data/tse_mgs-20241118_104759.rds") %>%
   mia::transformAssay(assay.type = "counts", method = "relabundance") %>% 
-  mia::addAlpha(assay.type = "counts", index = c("shannon", "observed"), name = c("shannon", "observed"), niter = 10) %>%
+  mia::addAlpha(assay.type = "counts", index = c("shannon", "observed"), name = c("shannon", "observed")) %>%
   tse_add_food_score(HFC) %>%
   #combine values into one
   tse_mutate(Q57 = dplyr::if_else(Q57 %in% c(3, 4), 3, Q57)) %>%
@@ -87,9 +85,10 @@ tse1 <- tse %>%
 
 # Characteristic
 ```{r}
-tse1 %>%
+tse %>%
   tse_meta(rownames = FALSE) %>%
-  mytableone(vars)
+  dplyr::mutate(EAST = factor(ifelse(EAST == 1, "Discovery east" , "Validation west"))) %>%
+  mytableone(vars,fo =  ~ .| EAST ) 
 ```
 # Model function definitions
 BMI model + covariates
@@ -144,15 +143,7 @@ lm_whr_model_for_taxon <- function(df, term, rank = NULL) {
 ## Univariable adjusted for age and sex
 BMI
 ```{r}
-tse1 %>%
-  tse_meta(rownames = FALSE) %>% 
-  lm(scale(BMI) ~ scale(shannon) + BL_AGE + MEN, data = .) %>% 
-  broom::tidy(conf.int = TRUE) %>%
-  round_numeric_columns() %>% 
-  DT::datatable(caption = "Alpha diversity to BMI")
-```
-```{r}
-tse1 %>%
+tse %>%
   tse_meta(rownames = FALSE) %>% 
   lm(scale(BMI) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57, data = .) %>% 
@@ -160,17 +151,19 @@ tse1 %>%
   round_numeric_columns() %>% 
   DT::datatable(caption = "Alpha diversity to BMI")
 ```
-Waist circumference
 ```{r}
-tse1 %>%
+#observed richness
+tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(scale(VYOTARO) ~ scale(shannon) + BL_AGE + MEN, data = .) %>% 
+  lm(scale(BMI) ~ scale(observed) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
+                                    ALKI2_FR02 + HFC + Q57, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
-  DT::datatable(caption = "Alpha diversity to Vyot")
+  DT::datatable(caption = "Alpha diversity to BMI")
 ```
+Waist circumference
 ```{r}
-tse1 %>%
+tse %>%
   tse_meta(rownames = FALSE) %>% 
   lm(scale(VYOTARO) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57, data = .) %>% 
@@ -178,17 +171,18 @@ tse1 %>%
   round_numeric_columns() %>% 
   DT::datatable(caption = "Alpha diversity to Vyot")
 ```
-Hip to waist ratio
 ```{r}
-tse1 %>%
+tse %>%
   tse_meta(rownames = FALSE) %>% 
-  lm(scale(WHR) ~ scale(shannon) + BL_AGE + MEN, data = .) %>% 
+  lm(scale(VYOTARO) ~ scale(observed) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
+                                    ALKI2_FR02 + HFC + Q57, data = .) %>% 
   broom::tidy(conf.int = TRUE) %>%
   round_numeric_columns() %>% 
-  DT::datatable(caption = "Alpha diversity to WHR")
+  DT::datatable(caption = "Alpha diversity to Vyot")
 ```
+Hip to waist ratio
 ```{r}
-tse1 %>%
+tse %>%
   tse_meta(rownames = FALSE) %>% 
   lm(scale(WHR) ~ scale(shannon) + BL_AGE + MEN + PREVAL_DIAB + PREVAL_CVD + CURR_SMOKE +
                                     ALKI2_FR02 + HFC + Q57, data = .) %>% 
@@ -261,7 +255,7 @@ Results
 df_lm_bmi_results %>%
   dplyr::arrange(qval_fdr) %>% 
   #write.csv("df_bmi.csv")
-  DT::datatable(caption = "Linear model for BMI")
+  DT::datatable(caption = "Linear model for BMI - discovery east")
 ```
 ## WaistCirc
 From the taxa list, add rank, and generate linear model for each taxa, adjust for FDR using BH
@@ -456,7 +450,7 @@ Results
 ```{r}
 df_lm_bmi_results %>%
   dplyr::arrange(qval_fdr) %>% 
-  DT::datatable(caption = "Linear model for BMI")
+  DT::datatable(caption = "Linear model for BMI - validation west")
 ```
 Significant taxa from discovery cohort
 ```{r}
@@ -673,7 +667,8 @@ bb <- ggplot(data=hi, aes(x=taxa, y=estimate, fill = Origin)) +
   scale_fill_manual(values=my_colors) +
   coord_flip() +
   theme_classic() +
-  theme(axis.text.y = element_text(face = 'italic'))
+  theme(axis.text.y = element_text(face = 'italic'),
+        theme(text=element_text(size=14))) 
+  
 bb
 ```
-
