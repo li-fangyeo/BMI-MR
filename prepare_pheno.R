@@ -42,9 +42,9 @@ pheno_pca[!complete.cases(pheno_pca), ]
 write_delim(pheno_pca, file = 'pheno_pca.tsv')
 
 #preparing all validated (east and west) bacteria associated with BMI
-df_lm_whr_results <- df_lm_whr_results %>%
+df_lm_bmi_results <- df_lm_bmi_results %>%
   dplyr::filter(qval_fdr < 0.05)
-sig.list <- df_lm_whr_results %>%
+sig.list <- df_lm_bmi_results %>%
   dplyr::mutate(across(everything(),~ gsub("GUT_","",.))) %>%
   as.data.frame()
 list <- sig.list$taxa
@@ -73,7 +73,7 @@ comma_list <-tse_val %>% assay("clr") %>%
   dplyr::mutate(across(everything(),~ gsub(" ","_",.)))
   
  
-write_csv(comma_list, "bacteria_list.csv", col_names = FALSE)
+write.table(comma_list, "bacteria_list.csv")
 
 bac_list <- pheno %>% 
   tibble::rownames_to_column("SampleID") %>%
