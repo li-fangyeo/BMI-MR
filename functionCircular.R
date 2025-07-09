@@ -44,7 +44,10 @@ funcolor<- c("Biosynthesis" = "#D53E4F", "Carrier biosynthesis" = "#F46D43",
 # Create the dot plot
 B<- ggplot(et, aes(x = estimate, y = Pathway, color = pathway2, size = qval_fdr)) +
   geom_point() +
-  scale_size_continuous(range = c(15, 5)) +
+  scale_size_continuous(range = c(15, 5),
+                        breaks = c(0.005, 0.01, 0.0235),
+                        labels = c("<0.005", "<0.01", "<0.05")
+  ) +
   labs(
     x = "Estimate",
     y = "Pathway",
@@ -54,6 +57,7 @@ B<- ggplot(et, aes(x = estimate, y = Pathway, color = pathway2, size = qval_fdr)
   theme_classic() +
   scale_color_manual(values = funcolor) +
   theme(
+    text = element_text(color = "black"),
     legend.title = element_text(size = 16),
     legend.text = element_text(size = 14),
     axis.text = element_text(size = 14),
@@ -63,7 +67,7 @@ library(patchwork)
 nested <- (A / B) +
   plot_annotation(tag_levels = 'A')
 nested
-ggplot2::ggsave(filename = "nest.pdf", 
+ggplot2::ggsave(filename = "nested.pdf", 
                 plot = nested,
                 #dpi = 300,
                 width = 18,
