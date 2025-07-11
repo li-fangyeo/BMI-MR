@@ -1,14 +1,21 @@
 # Microbiome and obesity
 Cross sectional, association analysis between obesity indicators (BMI, waist circumferenec, and waist-hip ratio) and gut microbiome in FINRISK 2002.
+
 Part 1: Using eastern finland as discovery cohort, validating significant taxa in western finland.
+
 Part 2: Using two-sample Mendelian randomization to find causal taxa for obesity indicators
 
 ## Getting started
 Cohort: FINRISK 2002 cohort were split into east (discovery) and west (validation) cohorts. 
+
 Exposure variable: gut microbiota abundances
+
 Outcome variable: Obesity indicators (namely BMI, waist cm, WHR)
+
 Covariate: diabetes, cardiovascular disease, smoking, alcohol consumption per week, healthy food choices, exercise
+
 Exclusion criteria: antibiotics use 1 month prior to stool collection, pregnant, metagenomic reads < 50,000
+
 Codes: eastwest.Rmd, beta.Rmd, functional.Rmd 
 
 ### Discovery cohort
