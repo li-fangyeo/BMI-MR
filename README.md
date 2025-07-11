@@ -1,3 +1,37 @@
+# Microbiome and obesity
+Cross sectional, association analysis between obesity indicators (BMI, waist circumferenec, and waist-hip ratio) and gut microbiome in FINRISK 2002.
+Part 1: Using eastern finland as discovery cohort, validating significant taxa in western finland.
+Part 2: Using two-sample Mendelian randomization to find causal taxa for obesity indicators
+
+## Getting started
+Cohort: FINRISK 2002 cohort were split into east (discovery) and west (validation) cohorts. 
+Exposure variable: gut microbiota abundances
+Outcome variable: Obesity indicators (namely BMI, waist cm, WHR)
+Covariate: diabetes, cardiovascular disease, smoking, alcohol consumption per week, healthy food choices, exercise
+Exclusion criteria: antibiotics use 1 month prior to stool collection, pregnant, metagenomic reads < 50,000
+
+### Discovery cohort
+Eastern finland cohort, n = 3906
+
+Alpha diversity using shannon index (measures evenness) and observed species (measures richness), with rarefaction of 10 iterations (niter = 10). Obesity indicators and alpha metric were scaled so that the BMI, WC and WHR are comparable.
+
+Differential abundance analysis was done using linear models, corrected for covariates. Taxa were filtered to be at the species level, at detection level of 0.1% and prevalence of 5%, and centre-log transformed.
+
+Significance level was at FDR corrected p-value < 0.05.
+
+### Validation cohort
+Western finland cohort, n = 1940
+
+Microbiota data was filtered to only keep significant taxa found in the discovery cohort. And the same linear models, corrected for covariates, were used to validate association signals. 
+
+No. of significant taxa after FDR correction:
+| Indicator | Discovery | Validation |
+| --------- | --------- | ---------- |
+| BMI       | 164       | 132        |
+| Waist cm  | 159       | 120        |
+| WHR       | 149       | 105        |
+
+
 # Mendelian randomization between gut microbiome and BMI
 Exposure dataset = FINRISK 2002 GWAS between genotype and microbial taxa (https://gitlab.com/turku-hypertension-center/bmi.git)
 
@@ -7,10 +41,6 @@ Two-sample MR is used to estimate the causal effect (effect size) of exposure (m
 
 Microbial taxa is a list of bacteria species that were found significantly associated with outcome (obesity indicators) in linear models, adjusted for covariates, and further validated in western finland cohort. This list of bacteria were further filtered for taxa with a prevalence of 25%, 10 reads detection level and centre log ratio (clr) transformed to exclude taxa that albeit significant, but had low prevalence rate. This prevalence filtering was chosen to match the prefiltering for GWAS in Qin, Y., Havulinna, A.S., Liu, Y. et al. Combined effects of host genetics and diet on human gut microbiota and incident disease in a single population cohort. Nat Genet 54, 134–142 (2022). https://doi.org/10.1038/s41588-021-00991-z.
 ***
-
-## Name
-Causal links between gut microbiome and BMI using two-sample Mendelian Randomization
-
 ## Description
 Steps to run after differential abundance analysis and obtaining significant taxa associated with the gut microbiome (FINRISK 2002).
 
