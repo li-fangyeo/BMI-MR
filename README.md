@@ -1,5 +1,6 @@
 # Microbiome and obesity
 Cross sectional, association analysis between obesity indicators (BMI, waist circumferenec, and waist-hip ratio) and gut microbiome in FINRISK 2002.
+For the main analysis, you only need to look at eastwest.rmd, functional.rmd. The rest are my internal checks or old codes that eventually distilled to the current two markdowns. 
 Part 1: Using eastern finland as discovery cohort, validating significant taxa in western finland.
 Part 2: Using two-sample Mendelian randomization to find causal taxa for obesity indicators
 
