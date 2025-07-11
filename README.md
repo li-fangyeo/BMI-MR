@@ -9,6 +9,7 @@ Exposure variable: gut microbiota abundances
 Outcome variable: Obesity indicators (namely BMI, waist cm, WHR)
 Covariate: diabetes, cardiovascular disease, smoking, alcohol consumption per week, healthy food choices, exercise
 Exclusion criteria: antibiotics use 1 month prior to stool collection, pregnant, metagenomic reads < 50,000
+Codes: eastwest.Rmd, beta.Rmd, functional.Rmd 
 
 ### Discovery cohort
 Eastern finland cohort, n = 3906
